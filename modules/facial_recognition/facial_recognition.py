@@ -37,17 +37,25 @@ def load_known_faces():
 
 def save_new_face(frame, face_encoding, new_name):
     try:
-        cv2.imshow('Video', frame)
-        cv2.waitKey(1)
         known_names.append(new_name)
         known_faces.append(face_encoding)
         greeted_faces.append(new_name)
         img_path = os.path.join(KNOWN_FACES_DIR, f"{new_name}.jpg")
         cv2.imwrite(img_path, frame)
         print(f"Saved new face as {new_name}")
-        message_queue.put(f"GREET {new_name}")  # Notify main app to greet the new face
+        # Reload known faces after saving the new face
+        reload_known_faces()
+
     except Exception as e:
         raise FacialRecognitionError(f"Error saving new face: {str(e)}")
+
+def reload_known_faces():
+    global known_faces, known_names
+    known_faces = []
+    known_names = []
+    greeted_faces.clear()
+    load_known_faces()
+
 
 def recognize_faces(frame):
     try:
@@ -93,7 +101,7 @@ def facial_recognition_loop(message_queue, response_queue):
                         message_queue.put("REQUEST_NAME")
                         print(f"Message sent: REQUEST_NAME")
                         while True:
-                            msg = message_queue.get()
+                            msg = response_queue.get()
                             if msg.startswith("NAME:"):
                                 new_name = msg.split(":")[1]
                                 save_new_face(frame, face_location, new_name)
@@ -101,7 +109,8 @@ def facial_recognition_loop(message_queue, response_queue):
                 else:
                     if name not in greeted_faces:
                         greeted_faces.append(name)
-                        message_queue.put(f"GREET {name}")
+                        if not message_queue.full():
+                            message_queue.put(f"GREET {name}")  # Notify to greet the recognized face
                         time.sleep(1)  # Wait briefly to avoid rapid greeting
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -109,3 +118,4 @@ def facial_recognition_loop(message_queue, response_queue):
 
     video_capture.release()
     cv2.destroyAllWindows()
+
