@@ -8,14 +8,12 @@ os.makedirs(KNOWN_FACES_DIR, exist_ok=True)
 
 known_faces = []
 known_names = []
-greeted_faces = []
 
 class FacialRecognitionError(Exception):
     pass
 
 def load_known_faces():
     global known_faces, known_names
-    from .facial_recognition import recognize_faces  # Import inside function to break circular dependency
     try:
         for filename in os.listdir(KNOWN_FACES_DIR):
             img = cv2.imread(os.path.join(KNOWN_FACES_DIR, filename))
@@ -33,26 +31,19 @@ def load_known_faces():
     except Exception as e:
         raise FacialRecognitionError(f"Error loading known faces: {str(e)}")
 
-def save_new_face(frame):
-    global known_faces, known_names, greeted_faces
-    from .facial_recognition import recognize_faces  # Import inside function to break circular dependency
+def save_new_face(frame, face_encoding, name):
     try:
-        cv2.imshow('Video', frame)
-        cv2.waitKey(1)
-        new_name = input("Enter the name for the new face: ")
-        known_names.append(new_name)
-        img_path = os.path.join(KNOWN_FACES_DIR, f"{new_name}.jpg")
+        known_names.append(name)
+        known_faces.append(face_encoding)
+        img_path = os.path.join(KNOWN_FACES_DIR, f"{name}.jpg")
         cv2.imwrite(img_path, frame)
-        print(f"Saved new face as {new_name}")
-        # Reload known faces after saving
-        load_known_faces()
-        return new_name
+        print(f"Saved new face as {name}")
     except Exception as e:
         raise FacialRecognitionError(f"Error saving new face: {str(e)}")
 
 def recognize_faces(frame):
-    global known_faces, known_names
     try:
+        global known_faces, known_names
         face_locations = face_recognition.face_locations(frame)
         face_encodings = face_recognition.face_encodings(frame, face_locations)
         
@@ -67,8 +58,42 @@ def recognize_faces(frame):
                 if matches[best_match_index]:
                     name = known_names[best_match_index]
     
-            recognized_faces.append((name, face_locations[0]))
+            recognized_faces.append((name, face_locations[0], face_encoding))
     
         return recognized_faces
     except Exception as e:
         raise FacialRecognitionError(f"Error recognizing faces: {str(e)}")
+
+def facial_recognition_loop(message_queue, response_queue):
+    load_known_faces()
+    video_capture = cv2.VideoCapture(0)
+    greeted_faces = set()
+
+    if not video_capture.isOpened():
+        message_queue.put("Error: Unable to access the camera. Please check camera permissions.")
+        return
+    
+    while True:
+        ret, frame = video_capture.read()
+        if not ret:
+            message_queue.put("Failed to capture image")
+            break
+
+        recognized_faces = recognize_faces(frame)
+
+        for name, face_location, face_encoding in recognized_faces:
+            if name == "Unknown":
+                message_queue.put("Unknown face detected. Please provide a name.")
+                name = response_queue.get()  # Wait for the main thread to provide a name
+                save_new_face(frame, face_encoding, name)
+                message_queue.put(f"Thank you, it's very nice to meet you {name}. How can I assist you today?")
+            else:
+                if name not in greeted_faces:
+                    greeted_faces.add(name)
+                    message_queue.put(f"Hello {name}, good to see you!")
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    video_capture.release()
+    cv2.destroyAllWindows()
