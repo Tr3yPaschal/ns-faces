@@ -21,26 +21,26 @@ def main():
 
     while True:  # Main application loop
         try:
+            #print("Before while loop, message queue empty:", message_queue.empty())
             # Process messages from facial recognition module
             while not message_queue.empty():  # Check if there are messages in queue
-                print(f"Message Queue Length: {message_queue.qsize()}")  # Print queue length for debugging
+
+                
                 action = message_queue.get()  # Get next message from the queue
-                print(f"Action received: {action}") # Print the action received
-                if action.startswith("Unknown face detected"):  # If new face detected
-                    print(action)  # Print detection message
+                
+                
+                if action.startswith("REQUEST_NAME"):  # If new face detected
+            
                     name = input("Enter the name for the new face: ")  # Prompt for new face's name
                     response_queue.put(f"NAME:{name}")  # Send name back to facial recognition module
 
                 elif action.startswith("GREET"):  # If recognized face greeted
                     
                     parts = action.split(" ")
-                    print(len(parts))
                     name = parts[1].strip(" ")  # Extract name from greeting
-                    print(name)
                     if name not in greeted_faces:  # If face not greeted before
                         greeted_faces.add(name)  # Add name to greeted faces set
                         current_user = name  # Set current user to this name
-                        print(action)  # Print greeting message
                         prompt = input(f"Hi {name}, how can I help you today? ")  # Prompt user for input
                         response_queue.put(f"PROMPT:{prompt}")  # Send user's prompt to LLM module
                     else:

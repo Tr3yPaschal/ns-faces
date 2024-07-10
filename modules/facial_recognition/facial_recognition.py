@@ -91,6 +91,7 @@ def facial_recognition_loop(message_queue, response_queue):
                 if name == "Unknown":
                     if not message_queue.full():
                         message_queue.put("REQUEST_NAME")
+                        print(f"Message sent: REQUEST_NAME")
                         while True:
                             msg = message_queue.get()
                             if msg.startswith("NAME:"):
