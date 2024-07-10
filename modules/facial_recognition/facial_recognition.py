@@ -45,7 +45,7 @@ def save_new_face(frame, face_encoding, new_name):
         img_path = os.path.join(KNOWN_FACES_DIR, f"{new_name}.jpg")
         cv2.imwrite(img_path, frame)
         print(f"Saved new face as {new_name}")
-        message_queue.put(f"GREET:{new_name}")  # Notify main app to greet the new face
+        message_queue.put(f"GREET {new_name}")  # Notify main app to greet the new face
     except Exception as e:
         raise FacialRecognitionError(f"Error saving new face: {str(e)}")
 
@@ -72,7 +72,7 @@ def recognize_faces(frame):
     except Exception as e:
         raise FacialRecognitionError(f"Error recognizing faces: {str(e)}")
 
-def facial_recognition_loop(message_queue):
+def facial_recognition_loop(message_queue, response_queue):
     load_known_faces()
     video_capture = cv2.VideoCapture(0)
     if not video_capture.isOpened():
@@ -100,7 +100,7 @@ def facial_recognition_loop(message_queue):
                 else:
                     if name not in greeted_faces:
                         greeted_faces.append(name)
-                        message_queue.put(f"GREET:{name}")
+                        message_queue.put(f"GREET {name}")
                         time.sleep(1)  # Wait briefly to avoid rapid greeting
 
         if cv2.waitKey(1) & 0xFF == ord('q'):

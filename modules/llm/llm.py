@@ -15,23 +15,3 @@ def chat(prompt):
     """
     response = ollama_model.invoke(prompt)
     return output_parser.parse(response)
-
-def interact_with_llm():
-    """
-    Function to interact with the LLM model (Ollama) through chat function.
-    """
-    while True:
-        user_prompt = input("Enter your prompt (or 'exit' to quit): ")
-
-        if user_prompt.lower() == 'exit':
-            break
-        
-        # Use the chat function to generate a response
-        llm_response = chat(user_prompt)
-        
-        print(f"LLM Response: {llm_response}\n")
-
-# Entry point of the script
-if __name__ == "__main__":
-    print("Welcome to the LLM Interaction Script!\n")
-    interact_with_llm()
