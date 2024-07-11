@@ -13,6 +13,8 @@ known_names = []
 greeted_faces = []
 message_queue = queue.Queue()
 
+stop_processing = False  # Global flag to stop processing after first recognition or save
+
 class FacialRecognitionError(Exception):
     pass
 
@@ -56,7 +58,6 @@ def reload_known_faces():
     greeted_faces.clear()
     load_known_faces()
 
-
 def recognize_faces(frame):
     try:
         global known_faces, known_names
@@ -81,6 +82,7 @@ def recognize_faces(frame):
         raise FacialRecognitionError(f"Error recognizing faces: {str(e)}")
 
 def facial_recognition_loop(message_queue, response_queue):
+    global stop_processing
     load_known_faces()
     video_capture = cv2.VideoCapture(0)
     if not video_capture.isOpened():
@@ -88,6 +90,10 @@ def facial_recognition_loop(message_queue, response_queue):
         return
     
     while True:
+
+        if stop_processing: # Stop processing after first greeting
+            break
+
         ret, frame = video_capture.read()
         if not ret:
             message_queue.put("Failed to capture image")
@@ -112,6 +118,7 @@ def facial_recognition_loop(message_queue, response_queue):
                         if not message_queue.full():
                             message_queue.put(f"GREET {name}")  # Notify to greet the recognized face
                         time.sleep(1)  # Wait briefly to avoid rapid greeting
+                        stop_processing = True # Stop processing after first greeting
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

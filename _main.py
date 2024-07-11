@@ -2,8 +2,6 @@ import threading
 from queue import Queue
 from modules.facial_recognition.facial_recognition import facial_recognition_loop  # Import facial recognition loop function
 from modules.llm.llm import chat  # Import LLM chat function
-from modules.txt_to_speech.txt_to_speech import talk  # Import text-to-speech function
-from modules.speech_to_txt.speech_to_txt import listen  # Import speech-to-text function
 
 def main():
     # Initialize communication queues between threads
@@ -33,8 +31,7 @@ def main():
                 
                 if action.startswith("REQUEST_NAME"):  # If new face detected
             
-                    talk("Hello, It's nice to meet you. I'm Cassandra, What is your name ?")  # Prompt for new face's name
-                    name = listen()  # Prompt for new face's name
+                    name = input("Enter the name for the new face: ")  # Prompt for new face's name
                     response_queue.put(f"NAME:{name}")  # Send name back to facial recognition module
 
                 elif action.startswith("GREET"):  # If recognized face greeted
@@ -44,8 +41,7 @@ def main():
                     if name not in greeted_faces:  # If face not greeted before
                         greeted_faces.add(name)  # Add name to greeted faces set
                         current_user = name  # Set current user to this name
-                        talk(f"Hello {name}, how can I help you today?")  # Greet the user
-                        prompt = listen()  # Prompt user for input
+                        prompt = input(f"Hi {name}, how can I help you today? ")  # Prompt user for input
                         response_queue.put(f"PROMPT:{prompt}")  # Send user's prompt to LLM module
                     else:
                         print("Unexpected format for action:", action)  # Handle unexpected format
@@ -57,9 +53,10 @@ def main():
 
                 if response.startswith("PROMPT:"):  # If response is a user prompt
                     prompt = response.split(":", 1)[1].strip()  # Extract the prompt text
+                    print(f"User Input: {prompt}")  # Print user's input
                     llm_response = chat(prompt)  # Generate response from LLM
-                    talk(llm_response)  # Print LLM's response
-                    prompt = listen()  # Prompt user for next input
+                    print(f"LLM: {llm_response}")  # Print LLM's response
+                    prompt = input(f"Hi {current_user}, how can I help you today? ")  # Prompt user for next input
                     response_queue.put(f"PROMPT:{prompt}")  # Send new prompt to LLM module
 
         except KeyboardInterrupt:  # Handle keyboard interrupt (Ctrl+C)

@@ -2,3 +2,4 @@ opencv-python-headless
 face-recognition
 dlib
 numpy==1.19.3
+gtts
